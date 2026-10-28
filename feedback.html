@@ -34,6 +34,8 @@
   .big{font-size:52px;margin:6px 0}
   .err{color:#B91C1C;font-size:14px}
   .foot{margin-top:18px;font-size:11px;color:#94A3B8}
+  .lbl{text-align:left;font-size:14px;font-weight:600;margin-top:14px}
+  .cnt{text-align:right;font-size:11px;color:#94A3B8;margin-top:3px}
 </style>
 </head>
 <body>
@@ -50,10 +52,12 @@
 
   <div id="stepBad" class="hidden">
     <div class="big">🙏</div>
-    <h1 style="font-size:20px">We're sorry. Thank you for telling us.</h1>
-    <div class="sub">The manager has been told. What went wrong? (optional)</div>
+    <h1 style="font-size:20px" id="badTitle">We're sorry. Thank you for telling us.</h1>
+    <div class="sub" id="badSub">The manager has been told. What went wrong? (optional)</div>
     <div class="chips" id="cats"></div>
-    <textarea id="comment" rows="3" placeholder="Anything else? (optional)"></textarea>
+    <div class="lbl">Tell us in a line or two (optional)</div>
+    <textarea id="comment" rows="3" maxlength="300" placeholder="e.g. The shower has no hot water" oninput="count(this,'cnt1')"></textarea>
+    <div class="cnt" id="cnt1">0 / 300</div>
     <div class="cb"><input type="checkbox" id="cb" onchange="document.getElementById('phoneW').classList.toggle('hidden',!this.checked)"><label for="cb">Please call me</label></div>
     <div id="phoneW" class="hidden"><input type="tel" id="phone" placeholder="Your phone number"><input type="text" id="name" placeholder="Your name (optional)"></div>
     <button class="btn" onclick="sendDetail()">Send</button>
@@ -65,8 +69,11 @@
     <h1 style="font-size:20px">Thank you, we're glad!</h1>
     <div class="sub" id="goodSub">Your feedback has been shared with the team.</div>
     <a id="reviewBtn" class="btn gold hidden" style="display:block;text-decoration:none" target="_blank" rel="noopener">⭐ Share it on Google</a>
-    <button class="link" onclick="showSuggest()">Anything we could do even better?</button>
-    <div id="suggestW" class="hidden"><textarea id="suggest" rows="3" placeholder="Your idea (optional)"></textarea><button class="btn" onclick="sendSuggest()">Send</button></div>
+    <div class="lbl">Anything specific you'd like to tell us? (optional)</div>
+    <textarea id="suggest" rows="3" maxlength="300" placeholder="e.g. Great room. The Wi-Fi was a bit slow." oninput="count(this,'cnt2')"></textarea>
+    <div class="cnt" id="cnt2">0 / 300</div>
+    <button class="btn" onclick="sendSuggest()">Send comment</button>
+    <button class="link" onclick="done('Thank you!')">No comment, I'm done</button>
   </div>
 
   <div id="stepDone" class="hidden"><div class="big">✅</div><h1 style="font-size:20px" id="doneMsg">Thank you.</h1><div class="sub">Enjoy the rest of your stay.</div></div>
@@ -105,7 +112,10 @@
       if (!d.ok) return err(d.error || 'Something went wrong.');
       fb = d;
       if (d.happy) { if (d.review) { $('reviewBtn').href = d.review; $('reviewBtn').classList.remove('hidden'); $('goodSub').textContent = 'Would you share it with other travellers? It helps us a lot.'; } show('stepGood'); }
-      else show('stepBad');
+      else {
+        if (n === 3) { $('badTitle').textContent = 'Thank you. How can we make it better?'; $('badSub').textContent = 'Pick anything that could be better (optional).'; }
+        show('stepBad');
+      }
     });
   };
   window.pick = function(el){ el.classList.toggle('on'); var t = el.textContent, i = cats.indexOf(t); if (i >= 0) cats.splice(i, 1); else cats.push(t); };
@@ -114,8 +124,8 @@
     if (cb && phone.replace(/\D/g, '').length < 7) { alert('Please enter your phone number so we can call you.'); return; }
     call('addGuestFeedbackDetail', { id: fb.id, t: fb.t, cats: cats, comment: clean($('comment').value), callback: cb, phone: phone, name: clean($('name').value) }).then(function(d){ done(d.ok ? d.message : 'Thank you. We are on it.'); });
   };
-  window.showSuggest = function(){ $('suggestW').classList.remove('hidden'); };
-  window.sendSuggest = function(){ var t = clean($('suggest').value); if (!t) return done('Thank you!'); call('addGuestFeedbackDetail', { id: fb.id, t: fb.t, comment: t }).then(function(){ done('Thank you for the idea!'); }); };
+  window.count = function(el, id){ $(id).textContent = el.value.length + ' / 300'; };
+  window.sendSuggest = function(){ var t = clean($('suggest').value); if (!t) return done('Thank you!'); call('addGuestFeedbackDetail', { id: fb.id, t: fb.t, comment: t }).then(function(){ done('Thank you — the manager will see your comment.'); }); };
 })();
 </script>
 </body>
