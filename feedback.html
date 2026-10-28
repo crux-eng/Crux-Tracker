@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>How is your stay?</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0F4C75">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<script src="config.js"></script>
+<style>
+  :root{--brand:#0F4C75;--gold:#E8A33D;--ink:#0D1B2A;--muted:#64748B;--line:#E2E8F0}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(160deg,#0D1B2A,#0F4C75);display:flex;align-items:center;justify-content:center;padding:18px;color:var(--ink)}
+  .card{background:#fff;border-radius:22px;max-width:420px;width:100%;padding:26px 22px;box-shadow:0 18px 50px rgba(0,0,0,.35);text-align:center}
+  .prop{font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--brand);font-weight:700}
+  h1{font-size:23px;margin:8px 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .faces{display:flex;justify-content:space-between;gap:6px}
+  .faces button{flex:1;border:2px solid var(--line);background:#fff;border-radius:16px;padding:12px 0 8px;font-size:34px;cursor:pointer;transition:transform .1s}
+  .faces button span{display:block;font-size:10.5px;color:var(--muted);margin-top:4px}
+  .faces button:active{transform:scale(.94)}
+  .faces button.on{border-color:var(--brand);background:#EFF6FF}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
+  .chip{padding:9px 13px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:14px;cursor:pointer}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  textarea,input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px;font-size:15px;font-family:inherit;margin-top:8px}
+  .btn{width:100%;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;background:var(--brand);color:#fff;margin-top:14px;cursor:pointer}
+  .btn.gold{background:var(--gold);color:#1F2937}
+  .link{display:block;margin-top:12px;color:var(--muted);font-size:13px;text-decoration:underline;background:none;border:none;cursor:pointer;width:100%}
+  .cb{display:flex;gap:8px;align-items:center;justify-content:center;font-size:14px;margin-top:10px}
+  .cb input{width:auto;margin:0}
+  .hidden{display:none}
+  .big{font-size:52px;margin:6px 0}
+  .err{color:#B91C1C;font-size:14px}
+  .foot{margin-top:18px;font-size:11px;color:#94A3B8}
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="loading">Loading…</div>
+
+  <div id="step1" class="hidden">
+    <div class="prop" id="prop"></div>
+    <h1>How is your stay?</h1>
+    <div class="sub" id="roomline"></div>
+    <div class="faces" id="faces"></div>
+    <div class="foot">One tap is enough. No sign-up.</div>
+  </div>
+
+  <div id="stepBad" class="hidden">
+    <div class="big">🙏</div>
+    <h1 style="font-size:20px">We're sorry. Thank you for telling us.</h1>
+    <div class="sub">The manager has been told. What went wrong? (optional)</div>
+    <div class="chips" id="cats"></div>
+    <textarea id="comment" rows="3" placeholder="Anything else? (optional)"></textarea>
+    <div class="cb"><input type="checkbox" id="cb" onchange="document.getElementById('phoneW').classList.toggle('hidden',!this.checked)"><label for="cb">Please call me</label></div>
+    <div id="phoneW" class="hidden"><input type="tel" id="phone" placeholder="Your phone number"><input type="text" id="name" placeholder="Your name (optional)"></div>
+    <button class="btn" onclick="sendDetail()">Send</button>
+    <button class="link" onclick="done('Thank you. We are on it.')">Skip</button>
+  </div>
+
+  <div id="stepGood" class="hidden">
+    <div class="big">😊</div>
+    <h1 style="font-size:20px">Thank you, we're glad!</h1>
+    <div class="sub" id="goodSub">Your feedback has been shared with the team.</div>
+    <a id="reviewBtn" class="btn gold hidden" style="display:block;text-decoration:none" target="_blank" rel="noopener">⭐ Share it on Google</a>
+    <button class="link" onclick="showSuggest()">Anything we could do even better?</button>
+    <div id="suggestW" class="hidden"><textarea id="suggest" rows="3" placeholder="Your idea (optional)"></textarea><button class="btn" onclick="sendSuggest()">Send</button></div>
+  </div>
+
+  <div id="stepDone" class="hidden"><div class="big">✅</div><h1 style="font-size:20px" id="doneMsg">Thank you.</h1><div class="sub">Enjoy the rest of your stay.</div></div>
+
+  <div id="stepErr" class="hidden"><div class="big">⚠️</div><div class="err" id="errMsg"></div></div>
+</div>
+
+<script>
+(function(){
+  var BUILT_IN = 'https://script.google.com/macros/s/AKfycby9i0g6Nko-31a3FjtToKIvSUPM_dRQMSUq6H97SmQK1idizt2DFDSALd_wPwzRQ06I2Q/exec';
+  var API = (window.CRUX_API_URL && /\/exec$/.test(String(window.CRUX_API_URL).trim())) ? String(window.CRUX_API_URL).trim() : BUILT_IN;
+  var q = new URLSearchParams(location.search), P = q.get('p') || '', R = q.get('r') || '', K = q.get('k') || '';
+  var fb = null, cats = [];
+  var FACES = [['😞','Very bad'],['🙁','Bad'],['😐','Okay'],['🙂','Good'],['😍','Excellent']];
+  function $(id){ return document.getElementById(id); }
+  function show(id){ ['loading','step1','stepBad','stepGood','stepDone','stepErr'].forEach(function(s){ $(s).classList.toggle('hidden', s !== id); }); }
+  function clean(t){ return String(t || '').replace(/%/g, ' percent').slice(0, 600); }
+  function call(action, body){
+    body.action = action;
+    return fetch(API + '?data=' + encodeURIComponent(JSON.stringify(body)) + '&t=' + Date.now()).then(function(r){ return r.text(); }).then(function(t){ try { return JSON.parse(t); } catch (e) { return { ok: false, error: 'Could not reach the hotel system. Please tell reception.' }; } })
+      .catch(function(){ return { ok: false, error: 'No internet connection. Please tell reception.' }; });
+  }
+  function err(m){ $('errMsg').textContent = m; show('stepErr'); }
+  window.done = function(m){ $('doneMsg').textContent = m || 'Thank you.'; show('stepDone'); };
+  if (!P || !R || !K) { err('This link is incomplete. Please scan the code in your room again.'); return; }
+  call('getGuestForm', { p: P, r: R, k: K }).then(function(d){
+    if (!d.ok) return err(d.error || 'Something went wrong.');
+    $('prop').textContent = d.property; $('roomline').textContent = 'Room ' + d.room;
+    $('faces').innerHTML = FACES.map(function(f, i){ return '<button onclick="rate(' + (i + 1) + ',this)">' + f[0] + '<span>' + f[1] + '</span></button>'; }).join('');
+    $('cats').innerHTML = d.categories.map(function(c){ return '<span class="chip" onclick="pick(this)">' + c + '</span>'; }).join('');
+    show('step1');
+  });
+  window.rate = function(n, btn){
+    btn.classList.add('on'); document.querySelectorAll('.faces button').forEach(function(b){ b.disabled = true; });
+    call('submitGuestFeedback', { p: P, r: R, k: K, rating: n }).then(function(d){
+      if (!d.ok) return err(d.error || 'Something went wrong.');
+      fb = d;
+      if (d.happy) { if (d.review) { $('reviewBtn').href = d.review; $('reviewBtn').classList.remove('hidden'); $('goodSub').textContent = 'Would you share it with other travellers? It helps us a lot.'; } show('stepGood'); }
+      else show('stepBad');
+    });
+  };
+  window.pick = function(el){ el.classList.toggle('on'); var t = el.textContent, i = cats.indexOf(t); if (i >= 0) cats.splice(i, 1); else cats.push(t); };
+  window.sendDetail = function(){
+    var cb = $('cb').checked, phone = $('phone').value.trim();
+    if (cb && phone.replace(/\D/g, '').length < 7) { alert('Please enter your phone number so we can call you.'); return; }
+    call('addGuestFeedbackDetail', { id: fb.id, t: fb.t, cats: cats, comment: clean($('comment').value), callback: cb, phone: phone, name: clean($('name').value) }).then(function(d){ done(d.ok ? d.message : 'Thank you. We are on it.'); });
+  };
+  window.showSuggest = function(){ $('suggestW').classList.remove('hidden'); };
+  window.sendSuggest = function(){ var t = clean($('suggest').value); if (!t) return done('Thank you!'); call('addGuestFeedbackDetail', { id: fb.id, t: fb.t, comment: t }).then(function(){ done('Thank you for the idea!'); }); };
+})();
+</script>
+</body>
+</html>
