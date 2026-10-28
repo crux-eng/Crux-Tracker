@@ -156,7 +156,17 @@
     })
     .catch(function (err) {
       clearTimeout(slow); clearTimeout(giveUp);
-      if (cached) start(cached); else if (!started) fail(err && (err.name === 'AbortError' ? 'timeout' : err.message));
+      var why = err && (err.name === 'AbortError' ? 'timeout' : err.message);
+      console.error('Crux: could not load the latest app from the server (' + why + '). Server: ' + API);
+      if (cached) {
+        start(cached);
+        // Say so, instead of silently showing an older saved copy.
+        var bar = document.createElement('div');
+        bar.textContent = 'Showing a saved copy — could not reach the Crux server (' + String(why).slice(0, 90) + '). Tap to try again.';
+        bar.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99999;background:#B45309;color:#fff;padding:12px 18px;border-radius:12px;font:600 13px Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer;max-width:92vw;text-align:center';
+        bar.onclick = function () { location.reload(); };
+        document.body.appendChild(bar);
+      } else if (!started) fail(why);
     });
 })();
 </script>
