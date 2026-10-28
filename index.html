@@ -90,6 +90,13 @@
       s.onload = s.onerror = function () { runScripts(list, i + 1, done); };
       document.body.appendChild(s);
     } else {
+      // Check each section first, so one broken section is named and skipped instead of stopping the app.
+      try { new Function(old.text); }
+      catch (e) {
+        console.error('Crux: section ' + (i + 1) + ' of ' + list.length + ' has a syntax error (' + e.message + '). It starts: ' + old.text.trim().slice(0, 160));
+        try { localStorage.removeItem(CACHE_KEY); } catch (x) {}
+        runScripts(list, i + 1, done); return;
+      }
       s.text = old.text;
       document.body.appendChild(s);
       runScripts(list, i + 1, done);
@@ -136,6 +143,15 @@
       clearTimeout(slow); clearTimeout(giveUp);
       if (!d || !d.ok || !d.html) throw new Error((d && d.error) || 'No app');
       writeCache(d.html);
+      if (started && cached && d.html !== cached) {
+        // A saved older copy was opened because the network was slow; offer the new version.
+        var bar = document.createElement('div');
+        bar.textContent = 'Crux has been updated — tap here to load the new version';
+        bar.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99999;background:#0F4C75;color:#fff;padding:12px 18px;border-radius:12px;font:600 14px Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer';
+        bar.onclick = function () { location.reload(); };
+        document.body.appendChild(bar);
+        return;
+      }
       start(d.html);
     })
     .catch(function (err) {
