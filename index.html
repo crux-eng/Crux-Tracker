@@ -49,6 +49,8 @@
    slow or failed connection still opens the last version.
    ────────────────────────────────────────────────────────────── */
 (function () {
+  // A guest room QR link that opened the staff app by mistake: go straight to the guest feedback page.
+  try { var q = new URLSearchParams(location.search); if (q.get('p') && q.get('r') && q.get('k')) { location.replace('feedback.html' + location.search); return; } } catch (e) {}
   var BUILT_IN = 'https://script.google.com/macros/s/AKfycby9i0g6Nko-31a3FjtToKIvSUPM_dRQMSUq6H97SmQK1idizt2DFDSALd_wPwzRQ06I2Q/exec';
   var CACHE_KEY = 'crux_app_html_v1', SLOW_MS = 12000, GIVE_UP_MS = 45000;
 
